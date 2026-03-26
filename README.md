@@ -35,10 +35,9 @@ ln -sf ~/skill-craft/skills/skill-craft ~/.claude/skills/skill-craft
 /skill-craft my-existing-skill
 ```
 
-## Complementary tools
+## See also
 
-- [anthropics/skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) — iterative skill creation with evals, benchmarks, and description optimization
-- **skill-craft** (this skill) — conventions enforcement, token efficiency, quality standards
+- [anthropics/skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) — iterative skill testing with evals, benchmarks, and description optimization
 
 ## License
 
