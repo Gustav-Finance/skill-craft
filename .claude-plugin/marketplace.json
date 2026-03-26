@@ -1,0 +1,12 @@
+{
+  "name": "skill-craft",
+  "owner": {
+    "name": "Gustav Finance"
+  },
+  "version": "2.0.0",
+  "description": "Meta-skill for creating and editing agent skills with enforced conventions: frontmatter, directory layout, load directives, token efficiency, and behavior rules.",
+  "strict": false,
+  "skills": [
+    "./skills/skill-craft"
+  ]
+}
