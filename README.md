@@ -41,4 +41,4 @@ ln -sf ~/skill-craft/skills/skill-craft ~/.claude/skills/skill-craft
 
 ## License
 
-Private - Gustav Finance
+MIT
