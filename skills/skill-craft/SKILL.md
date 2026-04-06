@@ -27,6 +27,7 @@ Without conventions, skills drift: inconsistent frontmatter breaks skill discove
 - **Phases are free until loaded**: Phase files only consume tokens when a `> Load:` directive is followed. Put detailed instructions in phases, not in SKILL.md.
 - **Family rules deduplication**: When a skill belongs to a family, rules in both the skill AND the family rules get loaded. Duplicated rules waste tokens twice.
 - **`Critical Rules` is an anti-pattern**: Agents tend to over-weight Critical Rules sections and under-weight everything else. Pre-flight checklists distribute enforcement to the right moment.
+- **Conditional steps get skipped**: Steps phrased as "mandatory if X" or split into many sub-steps (5a, 5b, 5c) are treated as optional by agents. If a step must happen, use a `(CHECKPOINT)` marker and an imperative "Do NOT skip" instruction — not conditional language.
 - **Skill vs agent config**: Skills are for task-specific workflows loaded on-demand. The agent's config file (e.g., `CLAUDE.md`, `.cursorrules`) is for always-on project rules. If the knowledge applies to every conversation (coding standards, naming conventions), put it in the config file. If it's a complex workflow activated contextually, make it a skill.
 
 ## Core Principles
@@ -167,6 +168,7 @@ Related skills sharing a common prefix (e.g., `blog-*`, `email-*`) should share 
 ### 8. Behavior Rules
 
 - **User input**: Never print questions as plain text — use an interactive tool that blocks execution until the user responds (Claude Code: `AskUserQuestion`)
+- **Checkpoints**: Any step where the agent MUST wait for user input before proceeding should be marked with `(CHECKPOINT)` in the step title and include an explicit "Do NOT skip this step. Do NOT proceed to the next phase without completing it." instruction. Without this, agents tend to skip interactive steps that feel optional — especially when nested in sub-steps or wrapped in conditional language like "if enabled".
 - **Task tracking**: Use task tracking in phases with 3+ sub-steps, for AI self-tracking not user-facing (Claude Code: `TodoWrite`)
 - **Pre-flight checklist**: Replace `## Critical Rules` with a verifiable checklist in the last phase before publishing. Each item must be testable (not vague).
 
@@ -260,6 +262,8 @@ Avoid these common mistakes when writing skills:
 - [ ] Examples use `❌ Don't:` / `✅ Do:` format
 - [ ] No `## Critical Rules` section — rules enforced via pre-flight checklist
 - [ ] Workflow skills with side effects have a pre-flight checklist
+- [ ] Steps requiring user input are marked `(CHECKPOINT)` with "Do NOT skip" instruction
+- [ ] No conditional language ("mandatory if...") on blocking steps — use imperative
 - [ ] Consistent terminology throughout (one term per concept)
 - [ ] `name` is action-oriented (not vague like `helper` or `utils`)
 - [ ] Validated with 2-3 realistic prompts
