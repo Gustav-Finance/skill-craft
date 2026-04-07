@@ -170,6 +170,8 @@ Related skills sharing a common prefix (e.g., `blog-*`, `email-*`) should share 
 - **User input**: Never print questions as plain text — use an interactive tool that blocks execution until the user responds (Claude Code: `AskUserQuestion`)
 - **Checkpoints**: Any step where the agent MUST wait for user input before proceeding should be marked with `(CHECKPOINT)` in the step title and include an explicit "Do NOT skip this step. Do NOT proceed to the next phase without completing it." instruction. Without this, agents tend to skip interactive steps that feel optional — especially when nested in sub-steps or wrapped in conditional language like "if enabled".
 - **Task tracking**: Use task tracking in phases with 3+ sub-steps, for AI self-tracking not user-facing (Claude Code: `TodoWrite`)
+- **Sequential execution**: For multi-phase workflows (4+ phases), enforce sequential execution with plan mode + TodoWrite instead of text-based pre-conditions. Start in plan mode so the user sees and approves the full pipeline. Initialize TodoWrite with all phases as pending. Mark each `in_progress` when starting, `completed` when done. Only one phase `in_progress` at a time. This is more robust than "Pre-condition: phase N must be complete" text in each phase file, because TodoWrite provides visual tracking and plan mode forces user approval.
+- **No time estimates in phase titles**: Duration estimates ("~30 min", "~1h") are noise. They're always wrong, they vary by tool complexity, and they clutter the pipeline. State what the phase does, not how long it takes.
 - **Pre-flight checklist**: Replace `## Critical Rules` with a verifiable checklist in the last phase before publishing. Each item must be testable (not vague).
 
 ```markdown
@@ -239,6 +241,9 @@ Avoid these common mistakes when writing skills:
 | Rigid ALWAYS/NEVER commands | Agent checks boxes instead of thinking | Explain the *why* behind the rule — agents respond better to reasoning than rigid commands |
 | Inconsistent terminology | Confuses the agent across sections | Pick one term per concept, use it throughout (e.g., always "endpoint" not sometimes "route", "URL", "path") |
 | Monolithic SKILL.md (500+ lines) | Loaded every time, wastes tokens | Split into phases/ and references/ |
+| Text-based pre-conditions ("Pre-condition: phase N must be complete") | Agent reads it but doesn't enforce it — easy to skip under context pressure | Use plan mode + TodoWrite for sequential enforcement |
+| Time estimates in phase titles ("~30 min") | Always wrong, varies by complexity, clutters the pipeline | Remove — state what the phase does, not how long |
+| Orchestrator skills that rewrite sub-skill rules | Duplicates rules, drifts from source, wastes tokens | Reference the sub-skill by name ("Run `/humanizer`"), don't copy its instructions |
 
 ## Conventions Check (run after create/edit)
 
@@ -267,3 +272,6 @@ Avoid these common mistakes when writing skills:
 - [ ] Consistent terminology throughout (one term per concept)
 - [ ] `name` is action-oriented (not vague like `helper` or `utils`)
 - [ ] Validated with 2-3 realistic prompts
+- [ ] Multi-phase workflows use plan mode + TodoWrite (not text pre-conditions)
+- [ ] No time estimates in phase titles
+- [ ] Orchestrator skills reference sub-skills by name, don't duplicate their rules
