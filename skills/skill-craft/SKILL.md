@@ -244,6 +244,7 @@ Avoid these common mistakes when writing skills:
 | Text-based pre-conditions ("Pre-condition: phase N must be complete") | Agent reads it but doesn't enforce it — easy to skip under context pressure | Use plan mode + TodoWrite for sequential enforcement |
 | Time estimates in phase titles ("~30 min") | Always wrong, varies by complexity, clutters the pipeline | Remove — state what the phase does, not how long |
 | Orchestrator skills that rewrite sub-skill rules | Duplicates rules, drifts from source, wastes tokens | Reference the sub-skill by name ("Run `/humanizer`"), don't copy its instructions |
+| Sub-skill call next to a manual checklist | Agent does the checklist manually and skips the skill. "Run `/seo-auditor`" + 5 checklist items below = agent checks the 5 items itself, never invokes the skill | Sub-skill invocations must be numbered steps BEFORE manual checks, with CHECKPOINT. Manual checks come after, only for things the sub-skill doesn't cover |
 
 ## Conventions Check (run after create/edit)
 
@@ -275,3 +276,4 @@ Avoid these common mistakes when writing skills:
 - [ ] Multi-phase workflows use plan mode + TodoWrite (not text pre-conditions)
 - [ ] No time estimates in phase titles
 - [ ] Orchestrator skills reference sub-skills by name, don't duplicate their rules
+- [ ] Sub-skill invocations are numbered steps with CHECKPOINT, not annotations inside manual checklists
