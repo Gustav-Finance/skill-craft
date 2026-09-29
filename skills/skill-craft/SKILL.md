@@ -118,7 +118,7 @@ description: "[What it does]. Use when [trigger conditions]."
 | `argument-hint`            | Skill takes arguments                   | `"[issue-number]"`        |
 | `disable-model-invocation` | Manual only (side effects, destructive) | `true`                    |
 | `user-invocable`           | Background knowledge, not a command     | `false`                   |
-| `allowed-tools`            | Pre-approve tools the workflow runs     | `Bash(gh issue:*), Read, Grep` |
+| `allowed-tools`            | Pre-approve tools the workflow runs     | `Bash(gh issue view:*), Read, Grep` |
 
 **Decision guide:**
 
@@ -127,7 +127,7 @@ description: "[What it does]. Use when [trigger conditions]."
 - Has side effects (push, publish, delete) → `disable-model-invocation: true`
 - Pure knowledge (voice profile, rules) → `user-invocable: false`
 
-**`allowed-tools` pre-approves, it does not restrict.** Every pattern listed runs without a permission prompt while the skill is active. Never list a blanket network or VCS pattern (`Bash(curl:*)`, `Bash(git:*)`, `Bash(gh:*)`): they let through uploads to any host, force pushes or `gh auth token` while the agent reads untrusted content (API responses, issue bodies). List the subcommands the workflow runs (`Bash(gh issue:*)`, `Bash(gh label:*)`) and let everything else prompt.
+**`allowed-tools` pre-approves, it does not restrict.** A listed pattern can run without a new permission prompt while the skill is active; the user's matching `ask` and `deny` rules still apply, and unlisted tools follow the current permission settings. Never list a blanket network or VCS pattern (`Bash(curl:*)`, `Bash(git:*)`, `Bash(gh:*)`): they let through uploads to any host, force pushes or `gh auth token` while the agent reads untrusted content (API responses, issue bodies). A command-group prefix is blanket too: `Bash(gh issue:*)` also approves `gh issue delete` and `gh issue transfer`. List the exact read subcommands the workflow runs (`Bash(gh issue view:*)`, `Bash(gh label list:*)`) and let writes prompt.
 
 ### 4. Recommended Sections
 
@@ -176,6 +176,7 @@ Related skills sharing a common prefix (e.g., `blog-*`, `email-*`) should share 
 - **No time estimates in phase titles**: Duration estimates ("~30 min", "~1h") are noise. They're always wrong, they vary by tool complexity, and they clutter the pipeline. State what the phase does, not how long it takes.
 - **Pre-flight checklist**: Replace `## Critical Rules` with a verifiable checklist in the last phase before publishing. Each item must be testable (not vague).
 - **Writes to shared content**: Before creating or editing anything others read (issues, PRs, docs, messages), show the exact result — the full body or a diff — at a `(CHECKPOINT)`, and write only what was approved. A change made after the approval, including a pre-flight fix, is presented again. Pass bodies as files (`--body-file`), never as inline shell strings, whose backticks and `$` the shell expands.
+- **Load-bearing output**: Output the user approves or a check relies on (a diff, a log, a list) must reach the agent whole. Command proxies and output-compacting hooks (e.g. rtk) rewrite `diff`, `git diff`/`log`/`show`/`status`/`branch`, `gh pr diff`, `cat`, `head` or `tail` into truncated summaries or reads that drop lines, still exit 0, and may refuse `find` actions (`-delete`, `-exec`). Use forms they leave alone (the Read tool for a file, `git --no-pager diff --no-index -- a b`, `git --no-pager diff`/`log`/`status`/`branch`, `command find`), and check a command against the hook when the environment has one (`rtk rewrite '<command>'`).
 
 ```markdown
 ### N. Pre-flight checklist
@@ -280,5 +281,6 @@ Avoid these common mistakes when writing skills:
 - [ ] No time estimates in phase titles
 - [ ] Orchestrator skills reference sub-skills by name, don't duplicate their rules
 - [ ] Sub-skill invocations are numbered steps with CHECKPOINT, not annotations inside manual checklists
-- [ ] `allowed-tools` lists no blanket network or VCS pattern (`curl:*`, `git:*`, `gh:*`)
+- [ ] `allowed-tools` lists no blanket network or VCS pattern (`curl:*`, `git:*`, `gh:*`) and no command-group prefix (`gh issue:*`): exact read subcommands only
+- [ ] Output shown for approval or used as a check (diffs, logs, status, files read back) uses forms an output-compacting hook leaves whole (the Read tool, `git --no-pager …`, `command find`)
 - [ ] Every write to shared content follows a CHECKPOINT that shows the exact result; bodies passed as files
