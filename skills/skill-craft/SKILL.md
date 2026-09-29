@@ -118,7 +118,7 @@ description: "[What it does]. Use when [trigger conditions]."
 | `argument-hint`            | Skill takes arguments                   | `"[issue-number]"`        |
 | `disable-model-invocation` | Manual only (side effects, destructive) | `true`                    |
 | `user-invocable`           | Background knowledge, not a command     | `false`                   |
-| `allowed-tools`            | Restrict tool access                    | `Bash(git:*), Read, Grep` |
+| `allowed-tools`            | Pre-approve tools the workflow runs     | `Bash(gh issue view:*), Read, Grep` |
 
 **Decision guide:**
 
@@ -126,6 +126,8 @@ description: "[What it does]. Use when [trigger conditions]."
 - Loaded by other skills only → `user-invocable: false`
 - Has side effects (push, publish, delete) → `disable-model-invocation: true`
 - Pure knowledge (voice profile, rules) → `user-invocable: false`
+
+**`allowed-tools` pre-approves, it does not restrict.** A listed pattern can run without a new permission prompt while the skill is active; the user's matching `ask` and `deny` rules still apply, and unlisted tools follow the current permission settings. Never list a blanket network or VCS pattern (`Bash(curl:*)`, `Bash(git:*)`, `Bash(gh:*)`): they let through uploads to any host, force pushes or `gh auth token` while the agent reads untrusted content (API responses, issue bodies). A command-group prefix is blanket too: `Bash(gh issue:*)` also approves `gh issue delete` and `gh issue transfer`. List the exact read subcommands the workflow runs (`Bash(gh issue view:*)`, `Bash(gh label list:*)`) and let writes prompt.
 
 ### 4. Recommended Sections
 
@@ -173,6 +175,8 @@ Related skills sharing a common prefix (e.g., `blog-*`, `email-*`) should share 
 - **Sequential execution**: For multi-phase workflows (4+ phases), enforce sequential execution with plan mode + TodoWrite instead of text-based pre-conditions. Start in plan mode so the user sees and approves the full pipeline. Initialize TodoWrite with all phases as pending. Mark each `in_progress` when starting, `completed` when done. Only one phase `in_progress` at a time. This is more robust than "Pre-condition: phase N must be complete" text in each phase file, because TodoWrite provides visual tracking and plan mode forces user approval.
 - **No time estimates in phase titles**: Duration estimates ("~30 min", "~1h") are noise. They're always wrong, they vary by tool complexity, and they clutter the pipeline. State what the phase does, not how long it takes.
 - **Pre-flight checklist**: Replace `## Critical Rules` with a verifiable checklist in the last phase before publishing. Each item must be testable (not vague).
+- **Writes to shared content**: Before creating or editing anything others read (issues, PRs, docs, messages), show the exact result — the full body or a diff — at a `(CHECKPOINT)`, and write only what was approved. A change made after the approval, including a pre-flight fix, is presented again. Pass bodies as files (`--body-file`), never as inline shell strings, whose backticks and `$` the shell expands.
+- **Load-bearing output**: Output the user approves or a check relies on (a diff, a log, a list) must reach the agent whole. Command proxies and output-compacting hooks (e.g. rtk) rewrite `diff`, `git diff`/`log`/`show`/`status`/`branch`, `gh pr diff`, `cat`, `head` or `tail` into truncated summaries or reads that drop lines, and a `curl` response into its JSON schema (`id: int`, no values) or a cut HTML page, still exit 0, and may refuse `find` actions (`-delete`, `-exec`) — a limitation, not a guard: the action silently doesn't happen. Read a file with the Read tool, and run a load-bearing command with the hook's explicit bypass (`RTK_DISABLED=1 git --no-pager diff --no-index -- a b`, `RTK_DISABLED=1 git --no-pager log`, `RTK_DISABLED=1 curl -s <url>` for any response body the agent reads, POST responses included; a `find` that must delete, scoped to one directory and one name pattern: `RTK_DISABLED=1 command find "<dir>" -maxdepth 1 -name '*.tmp' -delete`): a form that merely goes unrecognised today, such as `git --no-pager …`, can be rewritten by the next version of the hook. The variable is harmless where no hook is installed, and a prefixed command is no longer auto-allowed by the hook nor matched by `allowed-tools` prefixes, so it prompts. Check a command against the hook when the environment has one (`rtk rewrite '<command>'`). The rule covers commands the agent runs: a `` !`…` `` preload runs outside the hook, is not rewritten, and stays unprefixed so it keeps matching `allowed-tools`.
 
 ```markdown
 ### N. Pre-flight checklist
@@ -244,6 +248,7 @@ Avoid these common mistakes when writing skills:
 | Text-based pre-conditions ("Pre-condition: phase N must be complete") | Agent reads it but doesn't enforce it — easy to skip under context pressure | Use plan mode + TodoWrite for sequential enforcement |
 | Time estimates in phase titles ("~30 min") | Always wrong, varies by complexity, clutters the pipeline | Remove — state what the phase does, not how long |
 | Orchestrator skills that rewrite sub-skill rules | Duplicates rules, drifts from source, wastes tokens | Reference the sub-skill by name ("Run `/humanizer`"), don't copy its instructions |
+| Sub-skill call next to a manual checklist | Agent does the checklist manually and skips the skill. "Run `/seo-auditor`" + 5 checklist items below = agent checks the 5 items itself, never invokes the skill | Sub-skill invocations must be numbered steps BEFORE manual checks, with CHECKPOINT. Manual checks come after, only for things the sub-skill doesn't cover |
 
 ## Conventions Check (run after create/edit)
 
@@ -275,3 +280,7 @@ Avoid these common mistakes when writing skills:
 - [ ] Multi-phase workflows use plan mode + TodoWrite (not text pre-conditions)
 - [ ] No time estimates in phase titles
 - [ ] Orchestrator skills reference sub-skills by name, don't duplicate their rules
+- [ ] Sub-skill invocations are numbered steps with CHECKPOINT, not annotations inside manual checklists
+- [ ] `allowed-tools` lists no blanket network or VCS pattern (`curl:*`, `git:*`, `gh:*`) and no command-group prefix (`gh issue:*`): exact read subcommands only
+- [ ] Output shown for approval or used as a check (diffs, logs, status, files read back) comes from the Read tool or a command with the hook's explicit bypass (`RTK_DISABLED=1 …`), `curl` bodies included; `` !`…` `` preloads stay unprefixed
+- [ ] Every write to shared content follows a CHECKPOINT that shows the exact result; bodies passed as files
