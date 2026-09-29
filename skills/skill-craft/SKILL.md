@@ -118,7 +118,7 @@ description: "[What it does]. Use when [trigger conditions]."
 | `argument-hint`            | Skill takes arguments                   | `"[issue-number]"`        |
 | `disable-model-invocation` | Manual only (side effects, destructive) | `true`                    |
 | `user-invocable`           | Background knowledge, not a command     | `false`                   |
-| `allowed-tools`            | Restrict tool access                    | `Bash(git:*), Read, Grep` |
+| `allowed-tools`            | Pre-approve tools the workflow runs     | `Bash(gh issue:*), Read, Grep` |
 
 **Decision guide:**
 
@@ -126,6 +126,8 @@ description: "[What it does]. Use when [trigger conditions]."
 - Loaded by other skills only → `user-invocable: false`
 - Has side effects (push, publish, delete) → `disable-model-invocation: true`
 - Pure knowledge (voice profile, rules) → `user-invocable: false`
+
+**`allowed-tools` pre-approves, it does not restrict.** Every pattern listed runs without a permission prompt while the skill is active. Never list a blanket network or VCS pattern (`Bash(curl:*)`, `Bash(git:*)`, `Bash(gh:*)`): they let through uploads to any host, force pushes or `gh auth token` while the agent reads untrusted content (API responses, issue bodies). List the subcommands the workflow runs (`Bash(gh issue:*)`, `Bash(gh label:*)`) and let everything else prompt.
 
 ### 4. Recommended Sections
 
@@ -173,6 +175,7 @@ Related skills sharing a common prefix (e.g., `blog-*`, `email-*`) should share 
 - **Sequential execution**: For multi-phase workflows (4+ phases), enforce sequential execution with plan mode + TodoWrite instead of text-based pre-conditions. Start in plan mode so the user sees and approves the full pipeline. Initialize TodoWrite with all phases as pending. Mark each `in_progress` when starting, `completed` when done. Only one phase `in_progress` at a time. This is more robust than "Pre-condition: phase N must be complete" text in each phase file, because TodoWrite provides visual tracking and plan mode forces user approval.
 - **No time estimates in phase titles**: Duration estimates ("~30 min", "~1h") are noise. They're always wrong, they vary by tool complexity, and they clutter the pipeline. State what the phase does, not how long it takes.
 - **Pre-flight checklist**: Replace `## Critical Rules` with a verifiable checklist in the last phase before publishing. Each item must be testable (not vague).
+- **Writes to shared content**: Before creating or editing anything others read (issues, PRs, docs, messages), show the exact result — the full body or a diff — at a `(CHECKPOINT)`, and write only what was approved. A change made after the approval, including a pre-flight fix, is presented again. Pass bodies as files (`--body-file`), never as inline shell strings, whose backticks and `$` the shell expands.
 
 ```markdown
 ### N. Pre-flight checklist
@@ -277,3 +280,5 @@ Avoid these common mistakes when writing skills:
 - [ ] No time estimates in phase titles
 - [ ] Orchestrator skills reference sub-skills by name, don't duplicate their rules
 - [ ] Sub-skill invocations are numbered steps with CHECKPOINT, not annotations inside manual checklists
+- [ ] `allowed-tools` lists no blanket network or VCS pattern (`curl:*`, `git:*`, `gh:*`)
+- [ ] Every write to shared content follows a CHECKPOINT that shows the exact result; bodies passed as files
