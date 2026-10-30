@@ -241,6 +241,7 @@ Avoid these common mistakes when writing skills:
 | Hardcoded file paths | Breaks when project structure changes | Use `{baseDir}` placeholders or describe patterns |
 | Deeply nested references | Agent loses context traversing chains | One level deep max from SKILL.md |
 | Time-sensitive information | Becomes stale, causes wrong behavior | Put dates in the agent's config file, not skills |
+| References to pull requests or issues ("PR #16", "gustav-app#1521") | Mean nothing to the next reader and go stale once merged | State the rule as it stands today; when a past case explains it, describe the case in words |
 | Multiple options without defaults | Agent has to guess which to pick | Always specify a default, note alternatives |
 | Rigid ALWAYS/NEVER commands | Agent checks boxes instead of thinking | Explain the *why* behind the rule — agents respond better to reasoning than rigid commands |
 | Inconsistent terminology | Confuses the agent across sections | Pick one term per concept, use it throughout (e.g., always "endpoint" not sometimes "route", "URL", "path") |
